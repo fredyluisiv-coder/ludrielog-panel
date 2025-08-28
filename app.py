@@ -6,6 +6,7 @@ from email.mime.multipart import MIMEMultipart
 from email.mime.application import MIMEApplication
 import os
 from db import init_db, save_cotizacion
+import cotizacion  # 👈 aquí importamos el archivo cotizacion.py
 
 # Inicializar base de datos
 init_db()
@@ -70,11 +71,17 @@ def formulario_cotizacion():
 
 # ----------- LÓGICA PRINCIPAL -----------
 
-# Leer parámetros de la URL
+# Leer parámetros de la URL (?page=cotizacion)
 params = st.query_params
-path = params.get("page", [""])[0]  # toma ?page=cotizacion si existe
+path = params.get("page", [""])[0]
 
-if path == "cotizacion":
-    formulario_cotizacion()
-else:
-    panel_comercial()
+menu = st.sidebar.selectbox("Menú", ["Enviar correos", "Cotizaciones"])
+
+if menu == "Enviar correos":
+    if path == "cotizacion":
+        formulario_cotizacion()
+    else:
+        panel_comercial()
+elif menu == "Cotizaciones":
+    cotizacion.ver_cotizaciones()
+
