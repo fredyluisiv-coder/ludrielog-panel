@@ -10,10 +10,6 @@ from db import init_db, save_cotizacion
 # Inicializar base de datos
 init_db()
 
-# Leer parámetros de la URL
-params = st.query_params
-path = params.get("page", [""])[0]  # obtenemos "?page=cotizacion" si lo hay
-
 # ----------- PANEL COMERCIAL (enviar correos) -----------
 def panel_comercial():
     st.title("📧 Panel Comercial - Ludriel Logistic SAC")
@@ -73,6 +69,11 @@ def formulario_cotizacion():
             st.error("Por favor complete todos los campos obligatorios.")
 
 # ----------- LÓGICA PRINCIPAL -----------
+
+# Leer parámetros de la URL
+params = st.query_params
+path = params.get("page", [""])[0]  # toma ?page=cotizacion si existe
+
 if path == "cotizacion":
     formulario_cotizacion()
 else:
