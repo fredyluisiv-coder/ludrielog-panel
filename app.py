@@ -1,82 +1,79 @@
 import streamlit as st
 import pandas as pd
 import smtplib, ssl
-from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
 from email.mime.application import MIMEApplication
-from db import init_db, get_cotizaciones, get_cotizacion_file
-from dotenv import load_dotenv
 import os
-
-# Cargar variables del .env
-load_dotenv()
-
-EMAIL_USER = os.getenv("EMAIL_USER")
-EMAIL_PASS = os.getenv("EMAIL_PASS")
-SMTP_SERVER = os.getenv("SMTP_SERVER")
-SMTP_PORT = int(os.getenv("SMTP_PORT", 465))  # SSL por defecto
+from db import init_db, save_cotizacion
 
 # Inicializar base de datos
 init_db()
 
-st.title("📧 Panel Comercial - Ludriel Logistic SAC")
+# Leer parámetros de la URL
+params = st.query_params
+path = params.get("page", [""])[0]  # obtenemos "?page=cotizacion" si lo hay
 
-menu = st.sidebar.selectbox("Menú", ["Enviar correos", "Ver cotizaciones"])
+# ----------- PANEL COMERCIAL (enviar correos) -----------
+def panel_comercial():
+    st.title("📧 Panel Comercial - Ludriel Logistic SAC")
+    st.subheader("📮 Envío de correos de presentación")
 
-# ================== FUNCIÓN DE ENVÍO ==================
-def send_mail(to_email, subject, body, pdf_path):
-    msg = MIMEMultipart()
-    msg["From"] = EMAIL_USER
-    msg["To"] = to_email
-    msg["Subject"] = subject
-
-    # Cuerpo del correo
-    msg.attach(MIMEText(body, "html"))
-
-    # Adjuntar PDF
-    with open(pdf_path, "rb") as f:
-        pdf_bytes = f.read()
-        pdf_attachment = MIMEApplication(pdf_bytes, _subtype="pdf")
-        pdf_attachment.add_header("Content-Disposition", "attachment", filename="CartaPresentacion.pdf")
-        msg.attach(pdf_attachment)
-
-    context = ssl.create_default_context()
-    with smtplib.SMTP_SSL(SMTP_SERVER, SMTP_PORT, context=context) as server:
-        server.login(EMAIL_USER, EMAIL_PASS)
-        server.send_message(msg)
-
-# ================== ENVIAR CORREOS ==================
-if menu == "Enviar correos":
-    st.subheader("📤 Envío de correos de presentación")
-
-    uploaded_file = st.file_uploader("Sube tu lista de correos (CSV con columna 'email')", type=["csv"])
+    file = st.file_uploader("Sube tu lista de correos (CSV con columna 'email')", type=["csv"])
     subject = st.text_input("Asunto del correo", "Presentación de Ludriel Logistic SAC")
-    mensaje = st.text_area("Mensaje de presentación (HTML o texto plano)")
+    message = st.text_area("Mensaje de presentación (HTML o texto plano)")
 
-    if uploaded_file and st.button("Enviar correos"):
-        df = pd.read_csv(uploaded_file)
-        for email in df["email"]:
-            try:
-                send_mail(email, subject, mensaje, "CARTA DE PRESETNACION.pdf")
-                st.success(f"✅ Enviado a {email}")
-            except Exception as e:
-                st.error(f"❌ Error enviando a {email}: {e}")
+    if st.button("Enviar correos"):
+        if file is not None and message.strip():
+            df = pd.read_csv(file)
+            emails = df['email'].dropna().tolist()
 
-# ================== VER COTIZACIONES ==================
-if menu == "Ver cotizaciones":
-    st.subheader("📑 Cotizaciones recibidas")
+            smtp_server = os.getenv("SMTP_SERVER")
+            smtp_port = int(os.getenv("SMTP_PORT"))
+            email_user = os.getenv("EMAIL_USER")
+            email_pass = os.getenv("EMAIL_PASS")
 
-    rows = get_cotizaciones()
-    if rows:
-        df = pd.DataFrame(rows, columns=["ID", "Nombre", "Email", "Cotización"])
-        st.dataframe(df)
+            context = ssl.create_default_context()
+            with smtplib.SMTP_SSL(smtp_server, smtp_port, context=context) as server:
+                server.login(email_user, email_pass)
 
-        selected_id = st.number_input("Ingrese el ID de la cotización para descargar el archivo:", min_value=1, step=1)
-        if st.button("Descargar archivo"):
-            file_bytes = get_cotizacion_file(selected_id)
-            if file_bytes:
-                st.download_button("Descargar Cotización", file_bytes, file_name=f"cotizacion_{selected_id}.pdf")
-            else:
-                st.warning("⚠️ Esta cotización no tiene archivo adjunto.")
-    else:
-        st.info("Aún no hay cotizaciones registradas.")
+                for e in emails:
+                    msg = MIMEMultipart()
+                    msg["From"] = email_user
+                    msg["To"] = e
+                    msg["Subject"] = subject
+
+                    msg.attach(MIMEText(message, "html"))
+
+                    # Adjuntar PDF
+                    with open("CARTA DE PRESETNACION.pdf", "rb") as f:
+                        attach = MIMEApplication(f.read(), _subtype="pdf")
+                        attach.add_header("Content-Disposition", "attachment", filename="CARTA_DE_PRESENTACION.pdf")
+                        msg.attach(attach)
+
+                    server.sendmail(email_user, e, msg.as_string())
+                    st.success(f"Correo enviado a {e}")
+        else:
+            st.error("Por favor sube un CSV y escribe un mensaje.")
+
+# ----------- FORMULARIO DE COTIZACIÓN -----------
+def formulario_cotizacion():
+    st.title("📑 Formulario de Cotización - Ludriel Logistic SAC")
+
+    nombre = st.text_input("Nombre completo")
+    correo = st.text_input("Correo electrónico")
+    detalle = st.text_area("Detalles de la carga")
+    archivo = st.file_uploader("Adjuntar archivo de cotización (opcional)", type=["pdf", "xlsx", "docx"])
+
+    if st.button("Enviar cotización"):
+        if nombre and correo and detalle:
+            save_cotizacion(nombre, correo, detalle, archivo)
+            st.success("✅ Gracias, su cotización fue enviada correctamente.")
+        else:
+            st.error("Por favor complete todos los campos obligatorios.")
+
+# ----------- LÓGICA PRINCIPAL -----------
+if path == "cotizacion":
+    formulario_cotizacion()
+else:
+    panel_comercial()
