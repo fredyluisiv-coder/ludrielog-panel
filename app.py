@@ -71,17 +71,18 @@ def formulario_cotizacion():
 
 # ----------- LÓGICA PRINCIPAL -----------
 
-# Leer parámetros de la URL (?page=cotizacion)
-params = st.query_params
-path = params.get("page", [""])[0]
+# Detectar parámetros de la URL manualmente
+query_params = st.experimental_get_query_params()
+path = query_params.get("page", [""])[0]
 
 menu = st.sidebar.selectbox("Menú", ["Enviar correos", "Cotizaciones"])
 
-if menu == "Enviar correos":
-    if path == "cotizacion":
-        formulario_cotizacion()
-    else:
-        panel_comercial()
+if path == "cotizacion":
+    # Forzar formulario de cotización si viene en la URL
+    formulario_cotizacion()
+elif menu == "Enviar correos":
+    panel_comercial()
 elif menu == "Cotizaciones":
     cotizacion.ver_cotizaciones()
+
 
