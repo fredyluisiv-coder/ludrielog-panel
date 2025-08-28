@@ -1,23 +1,47 @@
 import streamlit as st
-from db import init_db, save_cotizacion
+import pandas as pd
+import sqlite3
 
-# Inicializar base de datos
-init_db()
+# Función para leer cotizaciones desde la base de datos
+def get_cotizaciones():
+    conn = sqlite3.connect("cotizaciones.db")
+    cursor = conn.cursor()
+    cursor.execute("SELECT id, nombre, correo, detalle, archivo FROM cotizaciones ORDER BY id DESC")
+    data = cursor.fetchall()
+    conn.close()
+    return data
 
-st.title("📑 Deja tu Cotización")
-st.write("Por favor complete sus datos y adjunte su propuesta:")
+# Vista de cotizaciones en el panel
+def ver_cotizaciones():
+    st.title("📑 Cotizaciones Recibidas")
 
-# Campos de entrada
-nombre = st.text_input("Nombre")
-email = st.text_input("Correo electrónico")
-cotizacion = st.text_area("Escriba aquí su cotización o propuesta")
-archivo = st.file_uploader("Adjunte su archivo de cotización", type=["pdf", "docx"])
+    data = get_cotizaciones()
 
-# Guardar cotización
-if st.button("Enviar"):
-    if nombre and email and cotizacion:
-        archivo_bytes = archivo.read() if archivo else None
-        save_cotizacion(nombre, email, cotizacion, archivo_bytes)
-        st.success("✅ ¡Su cotización fue enviada correctamente!")
-    else:
-        st.error("⚠️ Complete todos los campos obligatorios (Nombre, Correo y Cotización).")
+    if len(data) == 0:
+        st.info("⚠️ No hay cotizaciones registradas todavía.")
+        return
+
+    # Convertir a DataFrame para mostrar en tabla
+    df = pd.DataFrame(data, columns=["ID", "Nombre", "Correo", "Detalle", "Archivo adjunto"])
+    st.dataframe(df, use_container_width=True)
+
+    # Descargar como CSV
+    csv = df.to_csv(index=False).encode("utf-8")
+    st.download_button(
+        "⬇️ Descargar cotizaciones en CSV",
+        csv,
+        "cotizaciones.csv",
+        "text/csv",
+        key="download-csv"
+    )
+
+    # Descargar como Excel
+    excel_file = df.to_excel("cotizaciones.xlsx", index=False)
+    with open("cotizaciones.xlsx", "rb") as f:
+        st.download_button(
+            "⬇️ Descargar cotizaciones en Excel",
+            f,
+            "cotizaciones.xlsx",
+            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            key="download-excel"
+        )
