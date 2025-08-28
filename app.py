@@ -71,8 +71,8 @@ def formulario_cotizacion():
 
 # ----------- LÓGICA PRINCIPAL -----------
 
-# Detectar parámetros de la URL manualmente
-query_params = st.experimental_get_query_params()
+# Detectar parámetros de la URL (?page=cotizacion)
+query_params = st.query_params
 path = query_params.get("page", [""])[0]
 
 menu = st.sidebar.selectbox("Menú", ["Enviar correos", "Cotizaciones"])
