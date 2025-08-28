@@ -6,7 +6,7 @@ from email.mime.multipart import MIMEMultipart
 from email.mime.application import MIMEApplication
 import os
 from db import init_db, save_cotizacion
-import cotizacion  # 👈 aquí importamos el archivo cotizacion.py
+import cotizacion  # Importa funciones de cotizacion.py
 
 # Inicializar base de datos
 init_db()
