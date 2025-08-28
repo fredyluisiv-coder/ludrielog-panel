@@ -85,4 +85,3 @@ elif menu == "Enviar correos":
 elif menu == "Cotizaciones":
     cotizacion.ver_cotizaciones()
 
-
