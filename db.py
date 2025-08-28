@@ -1,42 +1,25 @@
 import sqlite3
 
-DB_NAME = "cotizaciones.db"
-
 def init_db():
-    conn = sqlite3.connect(DB_NAME)
+    conn = sqlite3.connect("cotizaciones.db")
     cursor = conn.cursor()
     cursor.execute("""
-    CREATE TABLE IF NOT EXISTS cotizaciones (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        nombre TEXT,
-        email TEXT,
-        cotizacion TEXT,
-        archivo BLOB
-    )
+        CREATE TABLE IF NOT EXISTS cotizaciones (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            nombre TEXT,
+            correo TEXT,
+            detalle TEXT,
+            archivo TEXT
+        )
     """)
     conn.commit()
     conn.close()
 
-def save_cotizacion(nombre, email, cotizacion, archivo_bytes):
-    conn = sqlite3.connect(DB_NAME)
+def save_cotizacion(nombre, correo, detalle, archivo):
+    conn = sqlite3.connect("cotizaciones.db")
     cursor = conn.cursor()
-    cursor.execute("INSERT INTO cotizaciones (nombre, email, cotizacion, archivo) VALUES (?, ?, ?, ?)",
-                   (nombre, email, cotizacion, archivo_bytes))
+    archivo_nombre = archivo.name if archivo else None
+    cursor.execute("INSERT INTO cotizaciones (nombre, correo, detalle, archivo) VALUES (?, ?, ?, ?)",
+                   (nombre, correo, detalle, archivo_nombre))
     conn.commit()
     conn.close()
-
-def get_cotizaciones():
-    conn = sqlite3.connect(DB_NAME)
-    cursor = conn.cursor()
-    cursor.execute("SELECT id, nombre, email, cotizacion FROM cotizaciones")
-    rows = cursor.fetchall()
-    conn.close()
-    return rows
-
-def get_cotizacion_file(cotizacion_id):
-    conn = sqlite3.connect(DB_NAME)
-    cursor = conn.cursor()
-    cursor.execute("SELECT archivo FROM cotizaciones WHERE id=?", (cotizacion_id,))
-    row = cursor.fetchone()
-    conn.close()
-    return row[0] if row else None
