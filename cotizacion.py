@@ -1,6 +1,7 @@
 import streamlit as st
 import pandas as pd
 import sqlite3
+import io
 
 # Función para leer cotizaciones desde la base de datos
 def get_cotizaciones():
@@ -36,12 +37,15 @@ def ver_cotizaciones():
     )
 
     # Descargar como Excel
-    excel_file = df.to_excel("cotizaciones.xlsx", index=False)
-    with open("cotizaciones.xlsx", "rb") as f:
-        st.download_button(
-            "⬇️ Descargar cotizaciones en Excel",
-            f,
-            "cotizaciones.xlsx",
-            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-            key="download-excel"
-        )
+    output = io.BytesIO()
+    with pd.ExcelWriter(output, engine="xlsxwriter") as writer:
+        df.to_excel(writer, index=False, sheet_name="Cotizaciones")
+    excel_data = output.getvalue()
+
+    st.download_button(
+        "⬇️ Descargar cotizaciones en Excel",
+        excel_data,
+        "cotizaciones.xlsx",
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        key="download-excel"
+    )
